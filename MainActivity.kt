@@ -17,15 +17,28 @@ class MainActivity : AppCompatActivity() {
         // Go full-screen immersive
         enableFullscreen()
 
+        // Create GameView
         gameView = GameView(this)
+
+        // Hook up listener for Restart / Exit buttons
+        gameView.listener = object : GameView.GameViewListener {
+            override fun onExitRequested() {
+                finish()
+                System.exit(0)   // table expects apps to close cleanly
+            }
+
+            override fun onRestartRequested() {
+                gameView.resetGameFromActivity()
+            }
+        }
+
+        // Show the view
         setContentView(gameView)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            enableFullscreen()
-        }
+        if (hasFocus) enableFullscreen()
     }
 
     private fun enableFullscreen() {
@@ -36,11 +49,5 @@ class MainActivity : AppCompatActivity() {
                     or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION)
-    }
-
-    fun exitToDashboard() {
-        // This matches Arcade1Up’s recommendation for quitting back to the Dashboard
-        finish()
-        System.exit(0)
     }
 }

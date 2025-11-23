@@ -13,6 +13,13 @@ class GameView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
+    interface GameViewListener {
+        fun onExitRequested()
+        fun onRestartRequested()
+    }
+
+    var listener: GameViewListener? = null
+
     // --- Load level ---
     private val level: LevelDefinition =
         LevelLoader.load(context, "levels/level1.json")
@@ -115,6 +122,18 @@ class GameView @JvmOverloads constructor(
         startNextRune()
 
     }
+
+    private val restartBtnRect = RectF()
+    private val exitBtnRect = RectF()
+    private val uiPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 0, 0, 0)
+    }
+    private val uiTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textAlign = Paint.Align.CENTER
+        textSize = 48f
+    }
+
 
     /**
      * Centered master-grid placement with gutter.
@@ -245,8 +264,50 @@ class GameView @JvmOverloads constructor(
         for (i in lines.indices) {
             canvas.drawText(lines[i], width / 2f, startY + i * paint.textSize * 1.2f, paint)
         }
+
+        if (gameState == GameState.READY || gameState == GameState.WIN || gameState == GameState.LOSE) {
+            val btnW = width * 0.25f
+            val btnH = height * 0.09f
+            val gap = width * 0.04f
+            val y = height * 0.70f
+
+            val centerX = width / 2f
+
+            restartBtnRect.set(
+                centerX - btnW - gap/2f,
+                y,
+                centerX - gap/2f,
+                y + btnH
+            )
+
+            exitBtnRect.set(
+                centerX + gap/2f,
+                y,
+                centerX + btnW + gap/2f,
+                y + btnH
+            )
+
+            canvas.drawRoundRect(restartBtnRect, 20f, 20f, uiPaint)
+            canvas.drawRoundRect(exitBtnRect, 20f, 20f, uiPaint)
+
+            canvas.drawText("Restart",
+                restartBtnRect.centerX(),
+                restartBtnRect.centerY() + uiTextPaint.textSize/3f,
+                uiTextPaint
+            )
+
+            canvas.drawText("Exit",
+                exitBtnRect.centerX(),
+                exitBtnRect.centerY() + uiTextPaint.textSize/3f,
+                uiTextPaint
+            )
+        }
+
     }
 
+    fun resetGameFromActivity() {
+        resetGame()
+    }
 
     private fun drawRune(canvas: Canvas) {
         if (gameState != GameState.PLAYING) return
@@ -311,6 +372,21 @@ class GameView @JvmOverloads constructor(
 
     override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
         if (event.action != android.view.MotionEvent.ACTION_DOWN) return true
+
+        val x = event.x
+        val y = event.y
+
+// If buttons are visible, let them capture taps
+        if ((gameState == GameState.READY || gameState == GameState.WIN || gameState == GameState.LOSE)) {
+            if (restartBtnRect.contains(x, y)) {
+                listener?.onRestartRequested()
+                return true
+            }
+            if (exitBtnRect.contains(x, y)) {
+                listener?.onExitRequested()
+                return true
+            }
+        }
 
         when (gameState) {
             GameState.READY -> {
